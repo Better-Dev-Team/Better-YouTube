@@ -1,0 +1,3 @@
+﻿src/plugins/index.ts(19,28): error TS2307: Cannot find module './ui/Visualizer' or its corresponding type declarations.
+src/plugins/index.ts(29,33): error TS2307: Cannot find module './audio/AudioCompressor' or its corresponding type declarations.
+src/plugins/index.ts(30,35): error TS2307: Cannot find module './audio/ExponentialVolume' or its corresponding type declarations.
