@@ -123,8 +123,7 @@ export class BrowserUI extends BasePlugin {
                 }
                 
                 /* Hide NATIVE Settings Button (User Request) */
-                ytmusic-settings-button,
-                ytd-topbar-menu-button-renderer {
+                ytmusic-settings-button {
                     display: none !important;
                 }
 
