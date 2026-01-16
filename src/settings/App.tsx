@@ -63,9 +63,16 @@ function App() {
       setPlugins(pluginList);
 
       // Load configs for all plugins
+      const results = await Promise.all(
+        pluginList.map(async (plugin) => ({
+          name: plugin.name,
+          config: await window.electronAPI.getPluginConfig(plugin.name),
+        }))
+      );
+
       const configs: Record<string, PluginConfig> = {};
-      for (const plugin of pluginList) {
-        configs[plugin.name] = await window.electronAPI.getPluginConfig(plugin.name);
+      for (const result of results) {
+        configs[result.name] = result.config;
       }
       setPluginConfigs(configs);
 
