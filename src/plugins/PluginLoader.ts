@@ -40,11 +40,11 @@ export class PluginLoader {
 
       const entries = await readdir(this.pluginsDirectory, { withFileTypes: true });
 
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          await this.loadPlugin(entry.name);
-        }
-      }
+      await Promise.all(
+        entries
+          .filter(entry => entry.isDirectory())
+          .map(entry => this.loadPlugin(entry.name))
+      );
 
       console.log(`Loaded ${this.plugins.size} plugin(s)`);
     } catch (error) {
@@ -136,7 +136,7 @@ export class PluginLoader {
   public async callOnAppReady(): Promise<void> {
     const enabledPlugins = this.getEnabledPlugins();
 
-    for (const plugin of enabledPlugins) {
+    await Promise.all(enabledPlugins.map(async (plugin) => {
       if (plugin.onAppReady) {
         try {
           await plugin.onAppReady();
@@ -144,7 +144,7 @@ export class PluginLoader {
           console.error(`Error in ${plugin.metadata.name}.onAppReady:`, error);
         }
       }
-    }
+    }));
   }
 
   /**
@@ -153,7 +153,7 @@ export class PluginLoader {
   public async callOnWindowCreated(window: BrowserWindow): Promise<void> {
     const enabledPlugins = this.getEnabledPlugins();
 
-    for (const plugin of enabledPlugins) {
+    await Promise.all(enabledPlugins.map(async (plugin) => {
       if (plugin.onWindowCreated) {
         try {
           await plugin.onWindowCreated(window);
@@ -161,7 +161,7 @@ export class PluginLoader {
           console.error(`Error in ${plugin.metadata.name}.onWindowCreated:`, error);
         }
       }
-    }
+    }));
   }
 
   /**
@@ -175,7 +175,7 @@ export class PluginLoader {
     const { SharedRendererUtils } = await import('./utils/SharedRendererUtils');
     await window.webContents.executeJavaScript(SharedRendererUtils);
 
-    for (const plugin of enabledPlugins) {
+    await Promise.all(enabledPlugins.map(async (plugin) => {
       // Check if the method exists (including inherited methods)
       const hasHook = typeof plugin.onRendererLoaded === 'function';
       const proto = Object.getPrototypeOf(plugin);
@@ -192,7 +192,7 @@ export class PluginLoader {
       } else {
         console.log(`[PluginLoader] Plugin ${plugin.metadata.name} has no onRendererLoaded hook`);
       }
-    }
+    }));
   }
 
   /**
