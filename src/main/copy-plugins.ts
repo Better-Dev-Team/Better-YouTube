@@ -21,7 +21,7 @@ export async function copyDefaultPlugins(): Promise<void> {
     // Get all plugin directories from src/plugins
     const entries = await readdir(srcPluginsDir, { withFileTypes: true });
 
-    for (const entry of entries) {
+    await Promise.all(entries.map(async (entry) => {
       if (entry.isDirectory()) {
         const srcPluginPath = join(srcPluginsDir, entry.name);
         const destPluginPath = join(pluginsDir, entry.name);
@@ -30,7 +30,7 @@ export async function copyDefaultPlugins(): Promise<void> {
         try {
           await stat(destPluginPath);
           // Plugin exists, skip
-          continue;
+          return;
         } catch {
           // Plugin doesn't exist, copy it
         }
@@ -38,29 +38,28 @@ export async function copyDefaultPlugins(): Promise<void> {
         // Create destination directory
         await mkdir(destPluginPath, { recursive: true });
 
-        // Copy renderer.js if it exists
-        try {
-          await copyFile(
+        // Copy files in parallel
+        await Promise.all([
+          // Copy renderer.js if it exists
+          copyFile(
             join(srcPluginPath, 'renderer.js'),
             join(destPluginPath, 'renderer.js')
-          );
-        } catch {
-          // renderer.js doesn't exist, skip
-        }
+          ).catch(() => {
+            // renderer.js doesn't exist, skip
+          }),
 
-        // Copy preload.js if it exists
-        try {
-          await copyFile(
+          // Copy preload.js if it exists
+          copyFile(
             join(srcPluginPath, 'preload.js'),
             join(destPluginPath, 'preload.js')
-          );
-        } catch {
-          // preload.js doesn't exist, skip
-        }
+          ).catch(() => {
+            // preload.js doesn't exist, skip
+          })
+        ]);
 
         console.log(`Copied plugin: ${entry.name}`);
       }
-    }
+    }));
   } catch (error) {
     console.error('Error copying plugins:', error);
   }
