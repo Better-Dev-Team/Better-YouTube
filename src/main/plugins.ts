@@ -32,34 +32,45 @@ export async function loadPlugins(): Promise<Plugin[]> {
   try {
     const entries = await readdir(pluginsDir, { withFileTypes: true });
     
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
+    const pluginPromises = entries
+      .filter((entry) => entry.isDirectory())
+      .map(async (entry) => {
         const pluginPath = join(pluginsDir, entry.name);
         const plugin: Plugin = {
           name: entry.name,
           path: pluginPath,
-          enabled: (store.get(`plugins.${entry.name}.enabled`, true) as boolean)
+          enabled: store.get(`plugins.${entry.name}.enabled`, true) as boolean
         };
 
-        // Try to load renderer.js
-        try {
-          const rendererPath = join(pluginPath, 'renderer.js');
-          plugin.renderer = await readFile(rendererPath, 'utf-8');
-        } catch (e) {
-          // renderer.js is optional
-        }
+        const [renderer, preload] = await Promise.all([
+          // Try to load renderer.js
+          (async () => {
+            try {
+              const rendererPath = join(pluginPath, 'renderer.js');
+              return await readFile(rendererPath, 'utf-8');
+            } catch (e) {
+              return undefined;
+            }
+          })(),
+          // Try to load preload.js
+          (async () => {
+            try {
+              const preloadPath = join(pluginPath, 'preload.js');
+              return await readFile(preloadPath, 'utf-8');
+            } catch (e) {
+              return undefined;
+            }
+          })()
+        ]);
 
-        // Try to load preload.js
-        try {
-          const preloadPath = join(pluginPath, 'preload.js');
-          plugin.preload = await readFile(preloadPath, 'utf-8');
-        } catch (e) {
-          // preload.js is optional
-        }
+        if (renderer !== undefined) plugin.renderer = renderer;
+        if (preload !== undefined) plugin.preload = preload;
 
-        plugins.push(plugin);
-      }
-    }
+        return plugin;
+      });
+
+    const loadedPlugins = await Promise.all(pluginPromises);
+    plugins.push(...loadedPlugins);
   } catch (error) {
     console.error('Error loading plugins:', error);
   }
